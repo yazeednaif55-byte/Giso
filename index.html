@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المهام الفاخر</title>
+
+    <!-- أيقونة المتصفح (Favicon) -->
+    <link id="favicon" rel="icon" type="image/jpeg" href="https://cdn.phototourl.com/member/2026-11-09-bf5cb41e-e67c-492e-a3df-450a4a5e0c5a.jpg">
+    
+    <!-- أيقونة الشاشة الرئيسية للأيفون والآيباد (iOS Web App Icon) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.phototourl.com/member/2026-11-09-bf5cb41e-e67c-492e-a3df-450a4a5e0c5a.jpg">
+    <link rel="apple-touch-icon" href="https://cdn.phototourl.com/member/2026-11-09-bf5cb41e-e67c-492e-a3df-450a4a5e0c5a.jpg">
+    
+    <!-- إعدادات شريط العنوان عند الحفظ كـ تطبيق في الأيفون -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="المهام">
+
+    <!-- Web App Manifest مدمج لأجهزة الأندرويد وChrome -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"تطبيق المهام الفاخر","short_name":"المهام","start_url":".","display":"standalone","background_color":"#0b0d12","theme_color":"#0b0d12","icons":[{"src":"https://cdn.phototourl.com/member/2026-11-09-bf5cb41e-e67c-492e-a3df-450a4a5e0c5a.jpg","sizes":"192x192","type":"image/jpeg"},{"src":"https://cdn.phototourl.com/member/2026-11-09-bf5cb41e-e67c-492e-a3df-450a4a5e0c5a.jpg","sizes":"512x512","type":"image/jpeg"}]}'>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            400: '#FACC15',
+                            500: '#EAB308',
+                            600: '#CA8A04',
+                            700: '#A16207',
+                        },
+                        accent: 'var(--accent-color, #EAB308)',
+                    },
+                    fontFamily: {
+                        sans: ['Tajawal', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts: Tajawal -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        :root {
+            --accent-color: #EAB308;
+            --accent-glow: rgba(234, 179, 8, 0.25);
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #0b0d12;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(18, 22, 31, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card {
+            background: rgba(25, 30, 43, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px -5px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0b0d12;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 9999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12 selection:bg-amber-500/30 selection:text-amber-200" x-data="appData()" x-init="initApp()">
+
+    <!-- App Background Ambient Lights -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-[128px] opacity-20" :style="`background-color: ${settings.themeColor}`"></div>
+        <div class="absolute top-1/2 -left-40 w-96 h-96 rounded-full blur-[128px] opacity-15" :style="`background-color: ${settings.themeColor}`"></div>
+        <div class="absolute -bottom-40 right-1/3 w-96 h-96 rounded-full blur-[128px] opacity-10" :style="`background-color: ${settings.themeColor}`"></div>
+    </div>
+
+    <!-- Main Wrapper -->
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+
+        <!-- Top Header Navigation -->
+        <header class="glass-panel rounded-2xl p-4 sm:p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <!-- Logo & Title Section -->
+            <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-4">
+                    <!-- App Logo Icon / Image -->
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl text-slate-950 font-bold transition-all duration-300 shadow-lg shadow-black/40 overflow-hidden" :style="`background-color: ${settings.themeColor}`">
+                        <template x-if="settings.logoType === 'icon'">
+                            <i :class="settings.logoIcon"></i>
+                        </template>
+                        <template x-if="settings.logoType === 'image'">
+                            <img :src="settings.logoUrl" alt="الشعار" class="w-full h-full object-cover rounded-xl" @error="settings.logoType = 'icon'">
+                        </template>
+                    </div>
+
+                    <!-- App Title & Subtitle -->
+                    <div>
+                        <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                            <span x-text="settings.appName"></span>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 font-medium">النسخة الفاخرة</span>
+                        </h1>
+                        <p class="text-xs text-slate-400 mt-0.5" x-text="settings.appSubtitle"></p>
+                    </div>
+                </div>
+
+                <!-- Settings Toggle Trigger (Mobile) -->
+                <button @click="isSettingsOpen = true" class="md:hidden w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center text-slate-300 hover:text-white transition">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+            </div>
+
+            <!-- Stats Bar & Actions -->
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-800/80 pt-4 md:pt-0">
+                <!-- Sound Effects Toggle Button -->
+                <button @click="toggleSound()" 
+                    class="w-10 h-10 rounded-xl flex items-center justify-center transition border"
+                    :class="settings.soundEnabled ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-400'"
+                    :title="settings.soundEnabled ? 'كتم المؤثرات الصوتية' : 'تفعيل المؤثرات الصوتية'">
+                    <i class="fa-solid" :class="settings.soundEnabled ? 'fa-volume-high' : 'fa-volume-xmark'"></i>
+                </button>
+
+                <!-- Task Stats Quick View -->
+                <div class="flex items-center gap-2 bg-slate-900/60 border border-slate-800/80 rounded-xl p-1.5 px-3">
+                    <div class="text-center px-2 border-l border-slate-800">
+                        <span class="block text-xs text-slate-400">الكل</span>
+                        <span class="text-sm font-bold text-white" x-text="tasks.length">0</span>
+                    </div>
+                    <div class="text-center px-2 border-l border-slate-800">
+                        <span class="block text-xs text-emerald-400">المكتملة</span>
+                        <span class="text-sm font-bold text-emerald-400" x-text="completedTasksCount()">0</span>
+                    </div>
+                    <div class="text-center px-2">
+                        <span class="block text-xs text-amber-400">المتبقية</span>
+                        <span class="text-sm font-bold text-amber-400" x-text="pendingTasksCount()">0</span>
+                    </div>
+                </div>
+
+                <!-- Customization Modal Button -->
+                <button @click="isSettingsOpen = true" class="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700/60 text-slate-200 text-sm font-medium transition shadow-sm">
+                    <i class="fa-solid fa-paint-brush text-amber-400"></i>
+                    <span>تخصيص التطبيق</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Layout Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Side: Task Creator & Filters -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Task Creation Card -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-amber-400"></i>
+                        <span>إضافة مهمة جديدة</span>
+                    </h2>
+
+                    <form @submit.prevent="addTask()" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">عنوان المهمة *</label>
+                            <input type="text" x-model="newTask.title" required placeholder="ما الذي ترغب في إنجازه اليوم؟"
+                                class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">تفاصيل إضافية</label>
+                            <textarea x-model="newTask.description" rows="2" placeholder="ملاحظات أو روابط هامة..."
+                                class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition resize-none"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">مستوى الأهمية</label>
+                                <select x-model="newTask.priority" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 transition">
+                                    <option value="high">🔴 عالي الخطورة / عاجل</option>
+                                    <option value="medium">🟡 متوسط الأهمية</option>
+                                    <option value="low">🟢 عادي / منخفض</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">التصنيف</label>
+                                <select x-model="newTask.category" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 transition">
+                                    <option value="عمل">💼 عمل</option>
+                                    <option value="شخصي">👤 شخصي</option>
+                                    <option value="تطوير">🚀 تطوير ذاتي</option>
+                                    <option value="صحة">🌿 صحة وتدريب</option>
+                                    <option value="مالية">💎 مالية وتثقيف</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">تاريخ الإنجاز المطلوب</label>
+                            <input type="date" x-model="newTask.dueDate" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-amber-400 transition">
+                        </div>
+
+                        <button type="submit" 
+                            class="w-full py-3 px-4 rounded-xl font-bold text-slate-950 flex items-center justify-center gap-2 shadow-lg transition-all duration-300 hover:brightness-110 active:scale-[0.98]"
+                            :style="`background-color: ${settings.themeColor}; box-shadow: 0 4px 20px ${settings.themeColor}40`">
+                            <i class="fa-solid fa-sparkles"></i>
+                            <span>إضافة المهمة للجدول</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Category Filters Card -->
+                <div class="glass-panel rounded-2xl p-6 hidden lg:block">
+                    <h3 class="text-sm font-bold text-slate-300 mb-3">تصفية حسب التصنيف</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button @click="selectedCategory = 'all'" 
+                            :class="selectedCategory === 'all' ? 'bg-amber-500/20 text-amber-400 border-amber-500/50' : 'bg-slate-900/50 text-slate-400 border-slate-800'"
+                            class="px-3 py-1.5 rounded-xl border text-xs font-medium transition">
+                            الكل (<span x-text="tasks.length"></span>)
+                        </button>
+                        <template x-for="cat in ['عمل', 'شخصي', 'تطوير', 'صحة', 'مالية']">
+                            <button @click="selectedCategory = cat" 
+                                :class="selectedCategory === cat ? 'bg-amber-500/20 text-amber-400 border-amber-500/50' : 'bg-slate-900/50 text-slate-400 border-slate-800'"
+                                class="px-3 py-1.5 rounded-xl border text-xs font-medium transition">
+                                <span x-text="cat"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side: Task Lists & Display -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Filter Bar & Search -->
+                <div class="glass-panel rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="relative w-full sm:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" x-model="searchQuery" placeholder="بحث عن مهمة..." 
+                            class="w-full bg-slate-900/80 border border-slate-700/60 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition">
+                    </div>
+
+                    <div class="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 w-full sm:w-auto justify-center">
+                        <button @click="filterStatus = 'all'; playSound('click')" 
+                            :class="filterStatus === 'all' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                            class="px-4 py-1.5 rounded-lg text-xs font-medium transition">
+                            الكل
+                        </button>
+                        <button @click="filterStatus = 'pending'; playSound('click')" 
+                            :class="filterStatus === 'pending' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                            class="px-4 py-1.5 rounded-lg text-xs font-medium transition">
+                            قيد الانتظار
+                        </button>
+                        <button @click="filterStatus = 'completed'; playSound('click')" 
+                            :class="filterStatus === 'completed' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                            class="px-4 py-1.5 rounded-lg text-xs font-medium transition">
+                            المكتملة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Task Cards List Container -->
+                <div class="space-y-3">
+                    <template x-if="filteredTasks().length === 0">
+                        <div class="glass-panel rounded-2xl p-12 text-center border-dashed border-2 border-slate-800">
+                            <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-4 text-slate-500 text-2xl">
+                                <i class="fa-solid fa-box-open"></i>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-300 mb-1">لا توجد مهام مطابقة</h3>
+                            <p class="text-xs text-slate-500">قم بإضافة مهام جديدة أو تعديل خيارات البحث والتصفية.</p>
+                        </div>
+                    </template>
+
+                    <template x-for="(task, index) in filteredTasks()" :key="task.id">
+                        <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in"
+                            :class="{'opacity-60 bg-slate-950/40': task.completed}">
+                            
+                            <div class="flex items-start gap-3.5 w-full sm:w-auto">
+                                <button @click="toggleTaskStatus(task.id)" 
+                                    class="mt-1 sm:mt-0 flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all duration-300"
+                                    :class="task.completed ? 'bg-emerald-500 border-emerald-400 text-slate-950' : 'border-slate-600 hover:border-amber-400 bg-slate-900'">
+                                    <i class="fa-solid fa-check text-xs font-bold" x-show="task.completed"></i>
+                                </button>
+
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md font-bold"
+                                            :class="{
+                                                'bg-rose-500/10 text-rose-400 border border-rose-500/20': task.priority === 'high',
+                                                'bg-amber-500/10 text-amber-400 border border-amber-500/20': task.priority === 'medium',
+                                                'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20': task.priority === 'low'
+                                            }">
+                                            <span x-text="task.priority === 'high' ? 'عالي' : (task.priority === 'medium' ? 'متوسط' : 'عادي')"></span>
+                                        </span>
+
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/50" x-text="task.category"></span>
+
+                                        <h3 class="text-sm font-bold text-white transition"
+                                            :class="{'line-through text-slate-400': task.completed}"
+                                            x-text="task.title"></h3>
+                                    </div>
+
+                                    <p class="text-xs text-slate-400 line-clamp-2" x-show="task.description" x-text="task.description"></p>
+
+                                    <div class="flex items-center gap-4 text-[11px] text-slate-500 pt-1">
+                                        <template x-if="task.dueDate">
+                                            <span class="flex items-center gap-1 text-slate-400">
+                                                <i class="fa-regular fa-calendar-check text-amber-400/80"></i>
+                                                <span x-text="task.dueDate"></span>
+                                            </span>
+                                        </template>
+                                        <span class="flex items-center gap-1">
+                                            <i class="fa-regular fa-clock"></i>
+                                            <span x-text="formatDate(task.createdAt)"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 self-end sm:self-center">
+                                <button @click="openEditModal(task)" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs transition border border-slate-700/50">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button @click="deleteTask(task.id)" class="w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 flex items-center justify-center text-xs transition border border-rose-500/20">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+
+                        </div>
+                    </template>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Customization Settings Modal -->
+    <div x-show="isSettingsOpen" 
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 overflow-hidden bg-black/70 backdrop-blur-md flex items-center justify-center p-4" style="display: none;">
+        
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-6 relative border border-slate-700/80 shadow-2xl" @click.outside="isSettingsOpen = false">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">تخصيص الهوية والشعار</h2>
+                        <p class="text-xs text-slate-400">عدّل اسم التطبيق والشعار واللون المميز بحرية</p>
+                    </div>
+                </div>
+                <button @click="isSettingsOpen = false" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-volume-high text-amber-400 text-sm"></i>
+                        <div>
+                            <span class="block text-xs font-bold text-white">المؤثرات الصوتية</span>
+                            <span class="text-[11px] text-slate-400">تشغيل نغمات التفاعل عند الإضافة والإنجاز</span>
+                        </div>
+                    </div>
+                    <button @click="toggleSound()" 
+                        class="w-12 h-6 rounded-full transition-colors relative p-1"
+                        :class="settings.soundEnabled ? 'bg-amber-500' : 'bg-slate-800'">
+                        <div class="w-4 h-4 rounded-full bg-slate-950 transition-transform duration-200"
+                            :class="settings.soundEnabled ? '-translate-x-6' : 'translate-x-0'"></div>
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">اسم التطبيق / العنوان الرئيسي</label>
+                    <input type="text" x-model="tempSettings.appName" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">الوصف الفرعي</label>
+                    <input type="text" x-model="tempSettings.appSubtitle" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">لون التمييز الرئيسي (Accent Color)</label>
+                    <div class="grid grid-cols-6 gap-3">
+                        <template x-for="color in themeColors">
+                            <button @click="tempSettings.themeColor = color" 
+                                class="w-10 h-10 rounded-xl flex items-center justify-center transition border-2"
+                                :style="`background-color: ${color}`"
+                                :class="tempSettings.themeColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-80 hover:opacity-100'">
+                                <i class="fa-solid fa-check text-xs text-slate-950 font-bold" x-show="tempSettings.themeColor === color"></i>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">نوع الشعار الداخلي</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                            <input type="radio" value="image" x-model="tempSettings.logoType" class="text-amber-500 focus:ring-0">
+                            <span>صورة التطبيق الرسمية</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                            <input type="radio" value="icon" x-model="tempSettings.logoType" class="text-amber-500 focus:ring-0">
+                            <span>أيقونة رمزية</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div x-show="tempSettings.logoType === 'icon'" class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-300">اختر الأيقونة المناسبة</label>
+                    <div class="grid grid-cols-5 gap-3">
+                        <template x-for="icon in presetIcons">
+                            <button @click="tempSettings.logoIcon = icon" 
+                                class="h-10 rounded-xl bg-slate-900 border flex items-center justify-center text-slate-300 hover:text-white transition text-lg"
+                                :class="tempSettings.logoIcon === icon ? 'border-amber-400 text-amber-400 bg-slate-800' : 'border-slate-800'">
+                                <i :class="icon"></i>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div x-show="tempSettings.logoType === 'image'">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">رابط صورة الشعار الداخلي</label>
+                    <input type="url" x-model="tempSettings.logoUrl" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-3 border-t border-slate-800">
+                <button @click="saveSettings()" class="flex-1 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition">
+                    حفظ التغييرات
+                </button>
+                <button @click="isSettingsOpen = false" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition">
+                    إلغاء
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div x-show="isEditModalOpen" 
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 overflow-hidden bg-black/70 backdrop-blur-md flex items-center justify-center p-4" style="display: none;">
+        
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 space-y-4 relative border border-slate-700/80 shadow-2xl" @click.outside="isEditModalOpen = false">
+            <h3 class="text-base font-bold text-white border-b border-slate-800 pb-3">تعديل بيانات المهمة</h3>
+            
+            <template x-if="editingTask">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">العنوان</label>
+                        <input type="text" x-model="editingTask.title" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">الوصف</label>
+                        <textarea x-model="editingTask.description" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">الأهمية</label>
+                            <select x-model="editingTask.priority" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-xs text-white">
+                                <option value="high">🔴 عالي</option>
+                                <option value="medium">🟡 متوسط</option>
+                                <option value="low">🟢 عادي</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">التصنيف</label>
+                            <select x-model="editingTask.category" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-xs text-white">
+                                <option value="عمل">💼 عمل</option>
+                                <option value="شخصي">👤 شخصي</option>
+                                <option value="تطوير">🚀 تطوير ذاتي</option>
+                                <option value="صحة">🌿 صحة وتدريب</option>
+                                <option value="مالية">💎 مالية وتثقيف</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <div class="flex items-center gap-2 pt-3">
+                <button @click="saveTaskEdit()" class="flex-1 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition">
+                    تحديث المهمة
+                </button>
+                <button @click="isEditModalOpen = false" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700 transition">
+                    إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        const targetAppIcon = "https://cdn.phototourl.com/member/2026-11-09-bf5cb41e-e67c-492e-a3df-450a4a5e0c5a.jpg";
+
+        function appData() {
+            return {
+                tasks: [],
+                filterStatus: 'all',
+                selectedCategory: 'all',
+                searchQuery: '',
+                isSettingsOpen: false,
+                isEditModalOpen: false,
+
+                audioCtx: null,
+
+                newTask: {
+                    title: '',
+                    description: '',
+                    priority: 'medium',
+                    category: 'عمل',
+                    dueDate: ''
+                },
+
+                editingTask: null,
+
+                settings: {
+                    appName: 'إنجازات الفاخرة',
+                    appSubtitle: 'منصة إدارة وتتبع المهام عالية الأهمية',
+                    themeColor: '#EAB308',
+                    logoType: 'image',
+                    logoIcon: 'fa-solid fa-crown',
+                    logoUrl: targetAppIcon,
+                    soundEnabled: true
+                },
+
+                tempSettings: {},
+
+                themeColors: ['#EAB308', '#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#F97316'],
+                presetIcons: [
+                    'fa-solid fa-crown',
+                    'fa-solid fa-gem',
+                    'fa-solid fa-bolt',
+                    'fa-solid fa-rocket',
+                    'fa-solid fa-shield-halved'
+                ],
+
+                getAudioContext() {
+                    if (!this.audioCtx) {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        if (AudioContext) {
+                            this.audioCtx = new AudioContext();
+                        }
+                    }
+                    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                        this.audioCtx.resume();
+                    }
+                    return this.audioCtx;
+                },
+
+                playSound(type) {
+                    if (!this.settings.soundEnabled) return;
+                    try {
+                        const ctx = this.getAudioContext();
+                        if (!ctx) return;
+                        const now = ctx.currentTime;
+
+                        if (type === 'add') {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(440, now);
+                            osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                            gain.gain.setValueAtTime(0.15, now);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now);
+                            osc.stop(now + 0.25);
+                        } else if (type === 'complete') {
+                            [523.25, 659.25, 783.99].forEach((freq, i) => {
+                                const osc = ctx.createOscillator();
+                                const gain = ctx.createGain();
+                                osc.type = 'triangle';
+                                osc.frequency.setValueAtTime(freq, now + i * 0.05);
+                                gain.gain.setValueAtTime(0.12, now + i * 0.05);
+                                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35 + i * 0.05);
+                                osc.connect(gain);
+                                gain.connect(ctx.destination);
+                                osc.start(now + i * 0.05);
+                                osc.stop(now + 0.4 + i * 0.05);
+                            });
+                        } else if (type === 'delete') {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(320, now);
+                            osc.frequency.exponentialRampToValueAtTime(110, now + 0.18);
+                            gain.gain.setValueAtTime(0.12, now);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now);
+                            osc.stop(now + 0.18);
+                        } else if (type === 'click') {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(600, now);
+                            gain.gain.setValueAtTime(0.05, now);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now);
+                            osc.stop(now + 0.04);
+                        }
+                    } catch (e) {}
+                },
+
+                toggleSound() {
+                    this.settings.soundEnabled = !this.settings.soundEnabled;
+                    this.tempSettings.soundEnabled = this.settings.soundEnabled;
+                    this.saveSettingsToStorage();
+                    if (this.settings.soundEnabled) this.playSound('click');
+                },
+
+                initApp() {
+                    const savedTasks = localStorage.getItem('luxury_tasks');
+                    if (savedTasks) {
+                        try { this.tasks = JSON.parse(savedTasks); } catch (e) { this.tasks = []; }
+                    } else {
+                        this.tasks = [];
+                    }
+
+                    const savedSettings = localStorage.getItem('luxury_settings');
+                    if (savedSettings) {
+                        try { this.settings = { ...this.settings, ...JSON.parse(savedSettings) }; } catch (e) {}
+                    }
+                    
+                    this.applyThemeColor(this.settings.themeColor);
+                    this.tempSettings = JSON.parse(JSON.stringify(this.settings));
+                },
+
+                saveTasksToStorage() {
+                    localStorage.setItem('luxury_tasks', JSON.stringify(this.tasks));
+                },
+
+                saveSettingsToStorage() {
+                    localStorage.setItem('luxury_settings', JSON.stringify(this.settings));
+                },
+
+                applyThemeColor(color) {
+                    document.documentElement.style.setProperty('--accent-color', color);
+                    document.documentElement.style.setProperty('--accent-glow', color + '40');
+                },
+
+                addTask() {
+                    if (!this.newTask.title.trim()) return;
+
+                    const task = {
+                        id: Date.now(),
+                        title: this.newTask.title.trim(),
+                        description: this.newTask.description.trim(),
+                        priority: this.newTask.priority,
+                        category: this.newTask.category,
+                        dueDate: this.newTask.dueDate,
+                        completed: false,
+                        createdAt: new Date().toISOString()
+                    };
+
+                    this.tasks.unshift(task);
+                    this.saveTasksToStorage();
+                    this.playSound('add');
+
+                    this.newTask.title = '';
+                    this.newTask.description = '';
+                    this.newTask.dueDate = '';
+                },
+
+                toggleTaskStatus(id) {
+                    const task = this.tasks.find(t => t.id === id);
+                    if (task) {
+                        task.completed = !task.completed;
+                        this.saveTasksToStorage();
+                        if (task.completed) this.playSound('complete');
+                        else this.playSound('click');
+                    }
+                },
+
+                deleteTask(id) {
+                    this.tasks = this.tasks.filter(t => t.id !== id);
+                    this.saveTasksToStorage();
+                    this.playSound('delete');
+                },
+
+                openEditModal(task) {
+                    this.playSound('click');
+                    this.editingTask = JSON.parse(JSON.stringify(task));
+                    this.isEditModalOpen = true;
+                },
+
+                saveTaskEdit() {
+                    if (!this.editingTask || !this.editingTask.title.trim()) return;
+                    const index = this.tasks.findIndex(t => t.id === this.editingTask.id);
+                    if (index !== -1) {
+                        this.tasks[index] = { ...this.editingTask };
+                        this.saveTasksToStorage();
+                        this.playSound('click');
+                    }
+                    this.isEditModalOpen = false;
+                },
+
+                saveSettings() {
+                    this.settings = JSON.parse(JSON.stringify(this.tempSettings));
+                    this.applyThemeColor(this.settings.themeColor);
+                    this.saveSettingsToStorage();
+                    this.playSound('click');
+                    this.isSettingsOpen = false;
+                },
+
+                filteredTasks() {
+                    return this.tasks.filter(task => {
+                        if (this.filterStatus === 'pending' && task.completed) return false;
+                        if (this.filterStatus === 'completed' && !task.completed) return false;
+                        if (this.selectedCategory !== 'all' && task.category !== this.selectedCategory) return false;
+                        if (this.searchQuery.trim() !== '') {
+                            const query = this.searchQuery.toLowerCase();
+                            const matchesTitle = task.title.toLowerCase().includes(query);
+                            const matchesDesc = task.description.toLowerCase().includes(query);
+                            if (!matchesTitle && !matchesDesc) return false;
+                        }
+                        return true;
+                    });
+                },
+
+                completedTasksCount() {
+                    return this.tasks.filter(t => t.completed).length;
+                },
+
+                pendingTasksCount() {
+                    return this.tasks.filter(t => !t.completed).length;
+                },
+
+                formatDate(isoString) {
+                    if (!isoString) return '';
+                    const date = new Date(isoString);
+                    return date.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
